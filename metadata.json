@@ -1,0 +1,6 @@
+{
+  "name": "Zenith AI",
+  "description": "Zenith AI — Bilingual Bangla-English personal AI assistant with voice notes to text, smart text-to-reminder extraction, notes, and a royal blue & black dark home screen.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,216 @@
+{
+  "entities": {
+    "NoteItem": {
+      "title": "NoteItem",
+      "description": "A user-authored or AI-transcribed bilingual note belonging to an authenticated user.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Owner Firebase Auth UID."
+        },
+        "title": {
+          "type": "string",
+          "description": "Concise title of the note (1-120 chars)."
+        },
+        "content": {
+          "type": "string",
+          "description": "Full Bangla or English note body (1-10000 chars)."
+        },
+        "sourceType": {
+          "type": "string",
+          "enum": ["MANUAL", "VOICE", "CHAT"],
+          "description": "How the note was created."
+        },
+        "pinned": {
+          "type": "boolean",
+          "description": "Whether the note is pinned to the top."
+        },
+        "languageTag": {
+          "type": "string",
+          "description": "Detected or selected language tag (e.g. bn, en, bn-en)."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation timestamp written via FieldValue.serverTimestamp()."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update timestamp written via FieldValue.serverTimestamp()."
+        }
+      },
+      "required": ["userId", "title", "content", "sourceType", "pinned", "createdAt", "updatedAt"]
+    },
+    "ReminderItem": {
+      "title": "ReminderItem",
+      "description": "A scheduled task or reminder extracted from text/voice or created manually.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Owner Firebase Auth UID."
+        },
+        "title": {
+          "type": "string",
+          "description": "Reminder title (1-160 chars)."
+        },
+        "details": {
+          "type": "string",
+          "description": "Optional reminder details (0-1000 chars)."
+        },
+        "dueAtMillis": {
+          "type": "integer",
+          "description": "Epoch milliseconds for the scheduled reminder time."
+        },
+        "dueLabel": {
+          "type": "string",
+          "description": "Human-readable bilingual date-time label (1-80 chars)."
+        },
+        "priority": {
+          "type": "string",
+          "enum": ["HIGH", "MEDIUM", "LOW"],
+          "description": "Priority level."
+        },
+        "category": {
+          "type": "string",
+          "description": "Category tag such as Work, Personal, Health, Errands."
+        },
+        "completed": {
+          "type": "boolean",
+          "description": "Completion state."
+        },
+        "sourceText": {
+          "type": "string",
+          "description": "Original unstructured text or voice transcript used to extract this reminder."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation timestamp written via FieldValue.serverTimestamp()."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update timestamp written via FieldValue.serverTimestamp()."
+        }
+      },
+      "required": ["userId", "title", "dueAtMillis", "dueLabel", "priority", "category", "completed", "createdAt", "updatedAt"]
+    },
+    "ChatMessage": {
+      "title": "ChatMessage",
+      "description": "A bilingual Bangla-English AI chat message belonging to an authenticated user.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Owner Firebase Auth UID."
+        },
+        "role": {
+          "type": "string",
+          "enum": ["USER", "ASSISTANT"],
+          "description": "Message sender role."
+        },
+        "text": {
+          "type": "string",
+          "description": "Message body in Bangla, English, or Banglish (1-15000 chars)."
+        },
+        "languageHint": {
+          "type": "string",
+          "description": "Language mode active when sent (auto, bn, en)."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation timestamp written via FieldValue.serverTimestamp()."
+        }
+      },
+      "required": ["userId", "role", "text", "createdAt"]
+    },
+    "AnswerCheckItem": {
+      "title": "AnswerCheckItem",
+      "description": "An AI-evaluated question and user answer record with verdict, 0-100 score, breakdown, and explanation.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Owner Firebase Auth UID."
+        },
+        "question": {
+          "type": "string",
+          "description": "Question or claim being checked (1-2000 chars)."
+        },
+        "userAnswer": {
+          "type": "string",
+          "description": "User's spoken or typed answer (1-4000 chars)."
+        },
+        "verdict": {
+          "type": "string",
+          "enum": ["CORRECT", "INCORRECT", "PARTIALLY_CORRECT", "UNABLE_TO_VERIFY"],
+          "description": "Semantic evaluation verdict."
+        },
+        "score": {
+          "type": "integer",
+          "description": "Numeric evaluation score from 0 to 100."
+        },
+        "scoreReason": {
+          "type": "string",
+          "description": "Concise explanation of why the score was awarded (1-1000 chars)."
+        },
+        "correctParts": {
+          "type": "string",
+          "description": "Portions of the answer that are accurate (0-2000 chars)."
+        },
+        "incorrectParts": {
+          "type": "string",
+          "description": "Portions of the answer that are inaccurate or missing (0-2000 chars)."
+        },
+        "correctAnswer": {
+          "type": "string",
+          "description": "Verified accurate reference answer (0-4000 chars)."
+        },
+        "detailedExplanation": {
+          "type": "string",
+          "description": "Comprehensive factual explanation (1-5000 chars)."
+        },
+        "inputLanguage": {
+          "type": "string",
+          "description": "Language code or mode used (auto, bn, en)."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation timestamp written via FieldValue.serverTimestamp()."
+        }
+      },
+      "required": ["userId", "question", "userAnswer", "verdict", "score", "scoreReason", "detailedExplanation", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}/notes/{noteId}": {
+      "schema": {
+        "$ref": "#/entities/NoteItem"
+      },
+      "description": "User-scoped collection of notes and transcribed voice notes."
+    },
+    "/users/{userId}/reminders/{reminderId}": {
+      "schema": {
+        "$ref": "#/entities/ReminderItem"
+      },
+      "description": "User-scoped collection of AI-extracted and manual reminders."
+    },
+    "/users/{userId}/chatMessages/{messageId}": {
+      "schema": {
+        "$ref": "#/entities/ChatMessage"
+      },
+      "description": "User-scoped bilingual AI chat history."
+    },
+    "/users/{userId}/answerChecks/{checkId}": {
+      "schema": {
+        "$ref": "#/entities/AnswerCheckItem"
+      },
+      "description": "User-scoped AI Smart Answer Checker history and scores."
+    }
+  }
+}

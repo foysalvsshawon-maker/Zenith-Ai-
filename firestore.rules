@@ -1,0 +1,152 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidNote(data) {
+      return data.userId is string && data.userId == request.auth.uid &&
+             data.title is string && data.title.size() >= 1 && data.title.size() <= 120 &&
+             data.content is string && data.content.size() >= 1 && data.content.size() <= 10000 &&
+             data.sourceType in ['MANUAL', 'VOICE', 'CHAT'] &&
+             data.pinned is bool &&
+             (!('languageTag' in data) || (data.languageTag is string && data.languageTag.size() <= 20));
+    }
+
+    function isValidReminder(data) {
+      return data.userId is string && data.userId == request.auth.uid &&
+             data.title is string && data.title.size() >= 1 && data.title.size() <= 160 &&
+             (!('details' in data) || (data.details is string && data.details.size() <= 1000)) &&
+             data.dueAtMillis is int && data.dueAtMillis >= 0 &&
+             data.dueLabel is string && data.dueLabel.size() >= 1 && data.dueLabel.size() <= 80 &&
+             data.priority in ['HIGH', 'MEDIUM', 'LOW'] &&
+             data.category is string && data.category.size() >= 1 && data.category.size() <= 40 &&
+             data.completed is bool &&
+             (!('sourceText' in data) || (data.sourceText is string && data.sourceText.size() <= 1000));
+    }
+
+    function isValidChatMessage(data) {
+      return data.userId is string && data.userId == request.auth.uid &&
+             data.role in ['USER', 'ASSISTANT'] &&
+             data.text is string && data.text.size() >= 1 && data.text.size() <= 15000 &&
+             (!('languageHint' in data) || (data.languageHint is string && data.languageHint.size() <= 20));
+    }
+
+    function isValidAnswerCheck(data) {
+      return data.userId is string && data.userId == request.auth.uid &&
+             data.question is string && data.question.size() >= 1 && data.question.size() <= 2000 &&
+             data.userAnswer is string && data.userAnswer.size() >= 1 && data.userAnswer.size() <= 4000 &&
+             data.verdict in ['CORRECT', 'INCORRECT', 'PARTIALLY_CORRECT', 'UNABLE_TO_VERIFY'] &&
+             data.score is int && data.score >= 0 && data.score <= 100 &&
+             data.scoreReason is string && data.scoreReason.size() >= 1 && data.scoreReason.size() <= 1000 &&
+             (!('correctParts' in data) || (data.correctParts is string && data.correctParts.size() <= 2000)) &&
+             (!('incorrectParts' in data) || (data.incorrectParts is string && data.incorrectParts.size() <= 2000)) &&
+             (!('correctAnswer' in data) || (data.correctAnswer is string && data.correctAnswer.size() <= 4000)) &&
+             data.detailedExplanation is string && data.detailedExplanation.size() >= 1 && data.detailedExplanation.size() <= 5000 &&
+             (!('inputLanguage' in data) || (data.inputLanguage is string && data.inputLanguage.size() <= 20));
+    }
+
+    match /users/{userId} {
+      allow read, write: if false;
+
+      match /notes/{noteId} {
+        allow list: if isOwner(userId);
+        allow get: if isOwner(userId) && isValidId(noteId);
+
+        allow create: if isOwner(userId) &&
+                         isValidId(noteId) &&
+                         incoming().keys().hasAll(['userId', 'title', 'content', 'sourceType', 'pinned', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['userId', 'title', 'content', 'sourceType', 'pinned', 'languageTag', 'createdAt', 'updatedAt']) &&
+                         incoming().createdAt is timestamp && incoming().createdAt <= request.time &&
+                         incoming().updatedAt is timestamp && incoming().updatedAt <= request.time &&
+                         isValidNote(incoming());
+
+        allow update: if isOwner(userId) &&
+                         isValidId(noteId) &&
+                         isValidNote(incoming()) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         incoming().updatedAt is timestamp && incoming().updatedAt <= request.time &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['title', 'content', 'pinned', 'languageTag', 'updatedAt']);
+
+        allow delete: if isOwner(userId) && isValidId(noteId);
+      }
+
+      match /reminders/{reminderId} {
+        allow list: if isOwner(userId);
+        allow get: if isOwner(userId) && isValidId(reminderId);
+
+        allow create: if isOwner(userId) &&
+                         isValidId(reminderId) &&
+                         incoming().keys().hasAll(['userId', 'title', 'dueAtMillis', 'dueLabel', 'priority', 'category', 'completed', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['userId', 'title', 'details', 'dueAtMillis', 'dueLabel', 'priority', 'category', 'completed', 'sourceText', 'createdAt', 'updatedAt']) &&
+                         incoming().createdAt is timestamp && incoming().createdAt <= request.time &&
+                         incoming().updatedAt is timestamp && incoming().updatedAt <= request.time &&
+                         isValidReminder(incoming());
+
+        allow update: if isOwner(userId) &&
+                         isValidId(reminderId) &&
+                         isValidReminder(incoming()) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         incoming().updatedAt is timestamp && incoming().updatedAt <= request.time &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['title', 'details', 'dueAtMillis', 'dueLabel', 'priority', 'category', 'completed', 'updatedAt']);
+
+        allow delete: if isOwner(userId) && isValidId(reminderId);
+      }
+
+      match /chatMessages/{messageId} {
+        allow list: if isOwner(userId);
+        allow get: if isOwner(userId) && isValidId(messageId);
+
+        allow create: if isOwner(userId) &&
+                         isValidId(messageId) &&
+                         incoming().keys().hasAll(['userId', 'role', 'text', 'createdAt']) &&
+                         incoming().keys().hasOnly(['userId', 'role', 'text', 'languageHint', 'createdAt']) &&
+                         incoming().createdAt is timestamp && incoming().createdAt <= request.time &&
+                         isValidChatMessage(incoming());
+
+        allow update: if false;
+        allow delete: if isOwner(userId) && isValidId(messageId);
+      }
+
+      match /answerChecks/{checkId} {
+        allow list: if isOwner(userId);
+        allow get: if isOwner(userId) && isValidId(checkId);
+
+        allow create: if isOwner(userId) &&
+                         isValidId(checkId) &&
+                         incoming().keys().hasAll(['userId', 'question', 'userAnswer', 'verdict', 'score', 'scoreReason', 'detailedExplanation', 'createdAt']) &&
+                         incoming().keys().hasOnly(['userId', 'question', 'userAnswer', 'verdict', 'score', 'scoreReason', 'correctParts', 'incorrectParts', 'correctAnswer', 'detailedExplanation', 'inputLanguage', 'createdAt']) &&
+                         incoming().createdAt is timestamp && incoming().createdAt <= request.time &&
+                         isValidAnswerCheck(incoming());
+
+        allow update: if false;
+        allow delete: if isOwner(userId) && isValidId(checkId);
+      }
+    }
+  }
+}
